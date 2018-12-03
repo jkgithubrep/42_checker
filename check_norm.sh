@@ -32,6 +32,17 @@ print_ok(){
 	printf "${GREEN}%s${NC}\n" "$1"
 }
 
+# Check author file
+print_header "CHECK AUTHOR FILE"
+has_author=`find . -maxdepth 1 -type f -name "author" -o -name "auteur" -exec sh -c "cat -e {} | wc -l | bc" \;`
+if [ $has_author -eq 0 ]; then
+	print_error "⟹  Oups! Author file not found."
+else
+	print_ok "⟹  Good! Author file found:"
+	find . -maxdepth 1 -type f -name "author" -o -name "auteur" -exec sh -c "cat -e {} " \;
+fi
+
+
 # Check norminette
 
 print_header "CHECK NORMINETTE"
