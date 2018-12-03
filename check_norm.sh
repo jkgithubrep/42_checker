@@ -71,21 +71,28 @@ fi
 printf "\n"
 
 # Check project contributors
+print_header "CHECK CONTRIBUTORS"
 printf "Type the name of the directories to exclude: "
 read path_excluded
 nb_path=`echo $path_excluded | tr -d '\n' | wc -w | bc`
 printf "%d directories will be excluded from search:\n" $nb_path
-printf "${MAGENTA}%s${NC}\n" "$path_excluded"
+[ $nb_path -gt 0 ] && printf "${MAGENTA}%s${NC}\n" "$path_excluded"
 if [ $nb_path -eq 0 ]; then
 	contributors=`find . -type f -name "*.[ch]" -exec cat {} \; | grep --colour=auto By | tr -d ' ' | cut -d : -f 2 | cut -d '<' -f 1 | sort | uniq | tr '\n' ' ' | sed -e 's/ *$//g'`
+	for name in $contributors
+	do
+		nb_occ=`find . -type f -name "*.[ch]" -exec cat {} \; | grep --colour=auto By | tr -d ' ' | cut -d : -f 2 | cut -d '<' -f 1 | grep $name | wc -l | bc`
+		echo $name $nb_occ
+	done
 else
 	if [ $nb_path -gt 1 ]; then
-		path_excluded=`echo -n $path_excluded | sed -e 's/ *$//' | sed -e 's/ / -o /g' | tr -d '\n'` 
+		path_excluded=`echo -n $path_excluded | sed -e 's/ *$//' | sed -e 's/ / -o -path /g' | tr -d '\n'` 
 	fi
 	contributors=`find . -type d \( -path $path_excluded \) -prune -o -type f -name "*.[ch]" -exec cat {} \; | grep --colour=auto By | tr -d ' ' | cut -d : -f 2 | cut -d '<' -f 1 | sort | uniq | tr '\n' ' ' | sed -e 's/ *$//g'`
+	for name in $contributors
+	do
+		nb_occ=`find . -type d \( -path $path_excluded \) -prune -o -type f -name "*.[ch]" -exec cat {} \; | grep --colour=auto By | tr -d ' ' | cut -d : -f 2 | cut -d '<' -f 1 | grep $name | wc -l | bc`
+		echo $name $nb_occ
+	done
 fi
-for name in $contributors
-do
-	nb_occ=`find . -type f -name "*.[ch]" -exec cat {} \; | grep --colour=auto By | tr -d ' ' | cut -d : -f 2 | cut -d '<' -f 1 | grep $name | wc -l | bc`
-	echo $name $nb_occ
-done
+
