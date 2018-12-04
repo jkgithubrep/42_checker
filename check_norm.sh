@@ -70,29 +70,53 @@ else
 fi
 printf "\n"
 
+print_stats(){
+	scale=3
+	limit=`echo "$1/$scale" | bc`
+	count=0
+	while [ $count -lt $limit ]
+	do
+		printf "${GREEN}+${NC}"
+		(( count+=1 ))
+	done
+	printf "\n"
+}
+
 # Check project contributors
 print_header "CHECK CONTRIBUTORS"
+printf "Check number of .c files created by each contributor to the project...\n"
 printf "Type the name of the directories to exclude: "
-read path_excluded
-nb_path=`echo $path_excluded | tr -d '\n' | wc -w | bc`
-printf "%d directories will be excluded from search:\n" $nb_path
-[ $nb_path -gt 0 ] && printf "${MAGENTA}%s${NC}\n" "$path_excluded"
-if [ $nb_path -eq 0 ]; then
-	contributors=`find . -type f -name "*.[ch]" -exec cat {} \; | grep --colour=auto By | tr -d ' ' | cut -d : -f 2 | cut -d '<' -f 1 | sort | uniq | tr '\n' ' ' | sed -e 's/ *$//g'`
-	for name in $contributors
+read dir_excluded
+nb_dir=`echo $dir_excluded | tr -d '\n' | wc -w | bc`
+directory="directory"
+[ $nb_dir -gt 1 ] && directory="directories"
+printf "%d %s will be excluded from search" $nb_dir $directory
+[ $nb_dir -gt 0 ] && printf " (${MAGENTA}%s${NC})\n" "$dir_excluded" || printf "\n"
+[ $nb_dir -gt 1 ] && dir_excluded=`echo $dir_excluded | sed -e 's/ *$//g' -e 's/ / --exclude-dir=/g' | tr -d '\n'`
+contributors=`grep -E -r -h "By:" --exclude-dir=$dir_excluded --include "*.c" . | tr -d ' ' | cut -d : -f 2 | cut -d '<' -f 1 | sort | uniq | tr '\n' ' ' | sed -e 's/ *$//g'`
+for name in $contributors
+do
+	nb_occ=`grep -E -r -h "By: $name" --exclude-dir=$dir_excluded --include "*.c" . | wc -l | bc`
+	printf "\nFiles created by ${MAGENTA}%s${NC}:\n" $name
+	grep -r -l "By: $name"  --exclude-dir=$dir_excluded --include "*.c" .
+	echo $name $nb_occ >> contributors.txt
+done
+[ -f contributors.txt ] && total_files=`awk '{s+=$2} END {print s}' contributors.txt` || total_files=0
+printf "\n"
+printf "⟹  Stats:\n"
+printf "Total number of .c files found: ${GREEN}%s${NC}\n" $total_files
+i=1
+if [ -f contributors.txt ]; then
+	while read line
 	do
-		nb_occ=`find . -type f -name "*.[ch]" -exec cat {} \; | grep --colour=auto By | tr -d ' ' | cut -d : -f 2 | cut -d '<' -f 1 | grep $name | wc -l | bc`
-		echo $name $nb_occ
-	done
-else
-	if [ $nb_path -gt 1 ]; then
-		path_excluded=`echo -n $path_excluded | sed -e 's/ *$//' | sed -e 's/ / -o -path /g' | tr -d '\n'` 
-	fi
-	contributors=`find . -type d \( -path $path_excluded \) -prune -o -type f -name "*.[ch]" -exec cat {} \; | grep --colour=auto By | tr -d ' ' | cut -d : -f 2 | cut -d '<' -f 1 | sort | uniq | tr '\n' ' ' | sed -e 's/ *$//g'`
-	for name in $contributors
-	do
-		nb_occ=`find . -type d \( -path $path_excluded \) -prune -o -type f -name "*.[ch]" -exec cat {} \; | grep --colour=auto By | tr -d ' ' | cut -d : -f 2 | cut -d '<' -f 1 | grep $name | wc -l | bc`
-		echo $name $nb_occ
-	done
+		nb=`echo $line | awk '{print $2}'`
+		[ $total_files -ne 0 ] && pct=`echo "scale=2; ($nb/$total_files)" | bc`
+		pct=`echo "($pct * 100)/1" | bc`
+		printf "%s %s%s " "$line" $pct "%"
+		print_stats $pct
+		(( i+=1 ))
+	done < contributors.txt
 fi
-
+printf "\n"
+#[ -f contributors.txt ] && cat contributors.txt || print_error "⟹  Oups! No contributors found."
+rm -f contributors.txt
