@@ -104,7 +104,8 @@ done
 [ -f contributors.txt ] && total_files=`awk '{s+=$2} END {print s}' contributors.txt` || total_files=0
 printf "\n"
 printf "⟹  Stats:\n"
-printf "Total number of .c files found: ${GREEN}%s${NC}\n" $total_files
+printf "Total number of .c files found: "
+[ $total_files -ne 0 ] && print_ok $total_files || print_error $total_files
 i=1
 if [ -f contributors.txt ]; then
 	while read line
@@ -117,6 +118,31 @@ if [ -f contributors.txt ]; then
 		(( i+=1 ))
 	done < contributors.txt
 fi
-printf "\n"
-#[ -f contributors.txt ] && cat contributors.txt || print_error "⟹  Oups! No contributors found."
+[ ! -f contributors.txt ] && print_error "⟹  Oups! No contributors found." || printf "\n"
 rm -f contributors.txt
+
+# Check git info
+print_header "CHECK GIT"
+printf "Check git log history...\n"
+contributors=`git log | grep Author | tr -d ' ' | cut -d '<' -f 2 | cut -d '@' -f 1 | sort | uniq | tr '\n' ' ' | sed -e 's/ *$//g'`
+for name in $contributors
+do
+	nb_occ=`git log | grep Author | grep $name | wc -l | bc`
+	printf "Nb of commits by ${MAGENTA}%s${NC}: ${GREEN}%s${NC}\n" $name $nb_occ
+	echo $name $nb_occ >> contributors.txt
+done
+[ -f contributors.txt ] && total_commits=`awk '{s+=$2} END {print s}' contributors.txt` || total_commits=0
+if [ -f contributors.txt ]; then
+	while read line
+	do
+		nb=`echo $line | awk '{print $2}'`
+		[ $total_files -ne 0 ] && pct=`echo "scale=2; ($nb/$total_files)" | bc`
+		pct=`echo "($pct * 100)/1" | bc`
+		printf "%s %s%s " "$line" $pct "%"
+		print_stats $pct
+		(( i+=1 ))
+	done < contributors.txt
+fi
+[ ! -f contributors.txt ] && print_error "⟹  Oups! No contributors found." || printf "\n"
+rm -f contributors.txt
+
