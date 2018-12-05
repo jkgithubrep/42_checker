@@ -177,8 +177,8 @@ if [ $is_in_list -eq "1" ]; then
 		cat results.txt
 	else
 		print_ok "⟹  Good! No non matching names found!"
-		rm results.txt
 	fi
+	rm -f results.txt
 	printf "\n"
 fi
 
