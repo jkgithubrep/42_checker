@@ -58,7 +58,7 @@ print_stats(){
 	printf "\n"
 }
 
-
+# Check that at least one parameter is in options_list
 check_option(){
 	while [ "$#" -gt 0 ]
 	do
@@ -72,24 +72,39 @@ check_option(){
 	return 0
 }
 
+# Check that all parameters are in options_list
+check_all_options(){
+	nb_arg="$#"
+	count=0
+	while [ "$#" -gt 0 ]
+	do
+		for option in $options_list
+		do
+			[ "$option" = $1 ] && (( count+=1 ))
+		done
+		shift
+	done
+	[ $count -lt $nb_arg ] && echo 0 || echo 1
+}
+
+
 #########
 # USAGE #
 #########
 
-
 options_list="-a --author -c --contrib -d --headers -e --all -g --git -h --help -n --norminette -m --makefiles"
-is_in_list=`check_option $*`
-if [ $# -eq 0 ] || ( [ $# -eq 1 ] && [ $is_in_list -eq 0 ] ); then
+all_in_list=`check_all_options $*`
+if [ $# -eq 0 ] || ( [ $# -gt 0 ] && [ "$all_in_list" -eq 0 ] ); then
 	printf "Usage: ./42_checker [options]\n"
 	printf "Options:\n"
 	printf "%s\n" " -a, --author			Check for author file."
 	printf "%s\n" " -c, --contrib			Check project contributors."
 	printf "%s\n" " -d, --headers			Check matching headers with file name."
-	printf "%s\n" " -e, --all				Check everything."
-	printf "%s\n" " -g, --git				Check git logs."
-	printf "%s\n" " -h, --help				Print this message and exit."
+	printf "%s\n" " -e, --all			Check everything."
+	printf "%s\n" " -g, --git			Check git logs."
+	printf "%s\n" " -h, --help			Print this message and exit."
 	printf "%s\n" " -n, --norminette		Check norminette."
-	printf "%s\n" " -m, --makefiles			Check makefiles."
+	printf "%s\n" " -m, --makefiles		Check makefiles."
 	exit
 fi
 
@@ -102,14 +117,14 @@ fi
 options_list="-a --author -e --all"
 is_in_list=`check_option $*`
 if [ $is_in_list -eq "1" ]; then
-#if [ "$test" = "-a" ] || [ "$test" = "--author" ] || [ "$test" = "-e" ] || [ "$test" = "--all" ]; then
 	print_header "CHECK AUTHOR FILE"
-	has_author=`find . -maxdepth 1 -type f -name "author" -o -name "auteur" -exec sh -c "cat -e {} | wc -l | bc" \;`
+	has_author=`find . -maxdepth 1 -type f -name "author" -o -name "auteur" | wc -l | bc`
 	if [ $has_author -eq 0 ]; then
 		print_error "⟹  Oups! Author file not found."
 	else
-		print_ok "⟹  Good! Author file found:"
-		find . -maxdepth 1 -type f -name "author" -o -name "auteur" -exec sh -c "cat -e {} " \;
+		print_ok "⟹  Good! Author file found"
+		printf "%s\n" "Printing author file content..."
+		find . -maxdepth 1 -type f -name "author" -o -name "auteur" -exec cat -e {} \;
 	fi
 	printf "\n"
 fi
