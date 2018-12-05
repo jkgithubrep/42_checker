@@ -190,7 +190,7 @@ is_in_list=`check_option $params`
 if [ $is_in_list -eq "1" ]; then
 	print_header "CHECK CONTRIBUTORS"
 	printf "Check number of .c files created by each contributor to the project...\n"
-	printf "Type the name of the directories to exclude: "
+	printf "Type the name of the directories to exclude (leave empty or ex: dirname1 dirname2 ...): "
 	read dir_excluded
 	nb_dir=`echo $dir_excluded | tr -d '\n' | wc -w | bc`
 	directory="directory"
@@ -212,15 +212,15 @@ if [ $is_in_list -eq "1" ]; then
 	printf "Total number of .c files found: "
 	[ $total_files -ne 0 ] && print_ok $total_files || print_error $total_files
 	if [ -f contributors.txt ]; then
-		(echo "User files pct scale"
+		(echo "USER FILES % SCALE"
 		while read line
 		do
 			nb=`echo $line | awk '{print $2}'`
 			user=`echo $line | awk '{print $1}'`
 			[ $total_files -ne 0 ] && pct=`expr 200 \* $nb \/ $total_files \% 2 + 100 \* $nb \/ $total_files` #Faster implementation for rounding division
-			printf "${MAGENTA}%s${NC} %s %s%s " $user $nb $pct "%"
-			print_stats $pct
-		done < contributors.txt) | cat -e
+			scale=`print_stats $pct`
+			echo  "$user" "$nb" "$pct%" "$scale"
+		done < contributors.txt) | column -t
 	fi
 	[ ! -f contributors.txt ] && print_error "⟹  Oups! No contributors found." || printf "\n"
 	rm -f contributors.txt
@@ -243,15 +243,15 @@ if [ $is_in_list -eq "1" ]; then
 	printf "Total number of commits: "
 	[ $total_commits -ne 0 ] && print_ok $total_commits || print_error $total_commits
 	if [ -f contributors.txt ]; then
+		(echo "USER FILES % SCALE"
 		while read line
 		do
 			nb=`echo $line | awk '{print $2}'`
 			user=`echo $line | awk '{print $1}'`
-			#[ $total_commits -ne 0 ] && pct=`awk "BEGIN { pc=100*${nb}/${total_commits}; i=int(pc); print (pc-i<0.5)?i:i+1 }"`
 			[ $total_commits -ne 0 ] && pct=`expr 200 \* $nb \/ $total_commits \% 2 + 100 \* $nb \/ $total_commits` #Faster implementation for rounding division
-			printf "${MAGENTA}%s${NC} %s  %s%s " $user $nb $pct "%"
-			print_stats $pct
-		done < contributors.txt
+			scale=`print_stats $pct`
+			echo  "$user" "$nb" "$pct%" "$scale"
+		done < contributors.txt) | column -t
 	fi
 	[ ! -f contributors.txt ] && print_error "⟹  Oups! No contributors found." || printf "\n"
 	rm -f contributors.txt
