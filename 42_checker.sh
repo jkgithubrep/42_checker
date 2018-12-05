@@ -271,8 +271,31 @@ if [ $is_in_list -eq "1" ]; then
 	for makefile in $makefiles
 	do
 		printf "Testing ${MAGENTA}$makefile/Makefile${NC}...\n"
-		relink=`make --silent -C $makefile fclean; make -C $makefile > /dev/null 2>&1; make -C $makefile | grep -E "(\.o|\.c)" | wc -l | bc`
 		printf "> Relink? "
-		[ "$relink" -ne 0 ] && print_error "RELINK" || print_ok "NO RELINK"
+		relink=`make --silent -C $makefile fclean; make --silent -C $makefile; make -C $makefile | grep -E "(\.o|\.c)" | wc -l | bc`
+		[ "$relink" -ne 0 ] && print_error "YES" || print_ok "NO"
+#		printf "> Recompile? "
+#		src_files=`make --silent -C $makefile fclean && make -C $makefile | grep -E -o "\b\w*\.o" | sort | uniq | sed 's/\.o/\.c/g'`
+#		fail_recompile=0
+#		for src in $src_files
+#		do
+#			if [ $fail_recompile -eq 0 ]; then
+#				make --silent -C $makefile
+#				find . -type f -name "$src" -exec touch {} \;
+#				nb_obj_recompiled=`make -C $makefile | grep -E -o "\b\w*\.o" | sort | uniq | wc -l | bc`
+#				if [ "$nb_obj_recompiled" -eq 0 ]; then
+#					fail_recompile=1
+#					echo $src >> srcs_errors.txt
+#				fi
+#			fi
+#		done
+#		if [ "$fail_recompile" -eq 1 ]; then
+#			print_error "NO"
+#			srcs_errors=`cat srcs_errors.txt | tr '\n' ' ' | sed 's/ *$//g'`
+#			rm -f srcs_errors.txt
+#			printf "Errors: (%s)\n" "$srcs_errors"
+#		else
+#			print_ok "YES"
+#		fi
 	done
 fi
