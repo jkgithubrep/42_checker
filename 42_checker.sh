@@ -10,6 +10,8 @@ BLUE='\033[0;34m'
 MAGENTA='\033[0;35m'
 NC='\033[0m'
 
+clone_dest_path=~/goinfre
+
 
 #############
 # FUNCTIONS #
@@ -92,10 +94,25 @@ check_all_options(){
 # USAGE #
 #########
 
+# Get params
+params="$*"
+
+# Check if there is a git repository to clone
+clone=0
+if [ $# -gt 1 ] && [ $1 == "git" ] && [ $2 == "clone" ] && [ "$3" != "" ]; then
+	[ "$4" = "" ] && clone_name=`basename $3` || clone_name="$4"
+	printf "Cloning ${MAGENTA}%s${NC} in ${MAGENTA}%s${NC}...\n" "$3" "$clone_dest_path"
+	git clone "$3" "$clone_dest_path/$clone_name"
+	[ "$?" -eq 0 ] && params="-e" || exit
+	clone=1
+	cd "$clone_dest_path/$clone_name"
+fi
+
+# Display usage
 options_list="-a --author -c --contrib -d --headers -e --all -g --git -h --help -n --norminette -m --makefiles"
 all_in_list=`check_all_options $*`
-if [ $# -eq 0 ] || ( [ $# -gt 0 ] && [ "$all_in_list" -eq 0 ] ); then
-	printf "Usage: ./42_checker [options]\n"
+if [ $clone = 0 ] && ( [ $# -eq 0 ] || ( [ $# -gt 0 ] && [ "$all_in_list" -eq 0 ] )); then
+	printf "Usage: sh 42_checker [options] | [git clone repo dest]\n"
 	printf "Options:\n"
 	printf "%s\n" " -a, --author			Check for author file."
 	printf "%s\n" " -c, --contrib			Check project contributors."
@@ -115,7 +132,7 @@ fi
 ### Check author file ###
 
 options_list="-a --author -e --all"
-is_in_list=`check_option $*`
+is_in_list=`check_option $params`
 if [ $is_in_list -eq "1" ]; then
 	print_header "CHECK AUTHOR FILE"
 	has_author=`find . -maxdepth 1 -type f -name "author" -o -name "auteur" | wc -l | bc`
@@ -132,7 +149,7 @@ fi
 ### Check norminette ###
 
 options_list="-n --norminette -e --all"
-is_in_list=`check_option $*`
+is_in_list=`check_option $params`
 if [ $is_in_list -eq "1" ]; then
 	print_header "CHECK NORMINETTE"
 	norminette | grep -E -B1 --color=auto "^(Error|Warning)" | grep -v "^--" | grep -E -v "Not a valid file" | grep -E -B1 --color=auto "^(Error|Warning)"
@@ -148,7 +165,7 @@ fi
 ### Check files headers for non matching names ###
 
 options_list="-d --headers -e --all"
-is_in_list=`check_option $*`
+is_in_list=`check_option $params`
 if [ $is_in_list -eq "1" ]; then
 	print_header "CHECK HEADERS"
 	printf "Check files headers for non matching names....\n"
@@ -169,7 +186,7 @@ fi
 ### Check project contributors ###
 
 options_list="-c --contrib -e --all"
-is_in_list=`check_option $*`
+is_in_list=`check_option $params`
 if [ $is_in_list -eq "1" ]; then
 	print_header "CHECK CONTRIBUTORS"
 	printf "Check number of .c files created by each contributor to the project...\n"
@@ -195,15 +212,15 @@ if [ $is_in_list -eq "1" ]; then
 	printf "Total number of .c files found: "
 	[ $total_files -ne 0 ] && print_ok $total_files || print_error $total_files
 	if [ -f contributors.txt ]; then
+		(echo "User files pct scale"
 		while read line
 		do
 			nb=`echo $line | awk '{print $2}'`
 			user=`echo $line | awk '{print $1}'`
-			#[ $total_files -ne 0 ] && pct=`awk "BEGIN { pc=100*${nb}/${total_files}; i=int(pc); print (pc-i<0.5)?i:i+1 }"`
 			[ $total_files -ne 0 ] && pct=`expr 200 \* $nb \/ $total_files \% 2 + 100 \* $nb \/ $total_files` #Faster implementation for rounding division
-			printf "${MAGENTA}%s${NC} %s  %s%s " $user $nb $pct "%"
+			printf "${MAGENTA}%s${NC} %s %s%s " $user $nb $pct "%"
 			print_stats $pct
-		done < contributors.txt
+		done < contributors.txt) | cat -e
 	fi
 	[ ! -f contributors.txt ] && print_error "⟹  Oups! No contributors found." || printf "\n"
 	rm -f contributors.txt
@@ -212,7 +229,7 @@ fi
 ### Check git info ###
 
 options_list="-g --git -e --all"
-is_in_list=`check_option $*`
+is_in_list=`check_option $params`
 if [ $is_in_list -eq "1" ]; then
 	print_header "CHECK GIT"
 	printf "Check git log history...\n"
@@ -243,7 +260,7 @@ fi
 ### Check Makefiles ###
 
 options_list="-m --makefiles -e --all"
-is_in_list=`check_option $*`
+is_in_list=`check_option $params`
 if [ $is_in_list -eq "1" ]; then
 	print_header "CHECK MAKEFILES"
 	printf "Check that Makefiles work as expected (no relink, dependencies,...)\n"
