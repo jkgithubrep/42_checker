@@ -273,6 +273,6 @@ if [ $is_in_list -eq "1" ]; then
 		printf "Testing ${MAGENTA}$makefile/Makefile${NC}...\n"
 		relink=`make --silent -C $makefile fclean; make -C $makefile > /dev/null 2>&1; make -C $makefile | grep -E "(\.o|\.c)" | wc -l | bc`
 		printf "> Relink? "
-		[ "$relink" -ne 0 ] && print_error "RELINK" || print_ok "NO RELINK"
+		[ "$relink" -ne 0 ] && print_error "YES" || print_ok "NO"
 	done
 fi
