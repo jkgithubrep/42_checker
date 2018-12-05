@@ -46,8 +46,8 @@ fi
 # Check norminette
 
 print_header "CHECK NORMINETTE"
-norminette | grep -E -B1 --color=auto -e "^(Error|Warning)" | grep -v "^--" | grep -E -v "Not a valid file" | grep -E -B1 --color=auto -e "^(Error|Warning)"
-norm_res=`norminette | grep -E -B1 --color=auto -e "^(Error|Warning)" | grep -v "^--" | grep -E -v "Not a valid file" | grep -E -B1 --color=auto -e "^(Error|Warning)" | wc -l | bc`
+norminette | grep -E -B1 --color=auto "^(Error|Warning)" | grep -v "^--" | grep -E -v "Not a valid file" | grep -E -B1 --color=auto "^(Error|Warning)"
+norm_res=`norminette | grep -E --color=auto "^(Error|Warning)" | grep -E -v "Not a valid file" | wc -l | bc`
 if [ $norm_res -ne 0 ]; then
 	print_error "⟹  Oups! Norminette test failed."
 else
@@ -106,16 +106,15 @@ printf "\n"
 printf "⟹  Stats:\n"
 printf "Total number of .c files found: "
 [ $total_files -ne 0 ] && print_ok $total_files || print_error $total_files
-i=1
 if [ -f contributors.txt ]; then
 	while read line
 	do
 		nb=`echo $line | awk '{print $2}'`
-		[ $total_files -ne 0 ] && pct=`echo "scale=2; ($nb/$total_files)" | bc`
-		pct=`echo "($pct * 100)/1" | bc`
-		printf "%s %s%s " "$line" $pct "%"
+		user=`echo $line | awk '{print $1}'`
+		#[ $total_files -ne 0 ] && pct=`awk "BEGIN { pc=100*${nb}/${total_files}; i=int(pc); print (pc-i<0.5)?i:i+1 }"`
+		[ $total_files -ne 0 ] && pct=`expr 200 \* $nb \/ $total_files \% 2 + 100 \* $nb \/ $total_files` #Faster implementation for rounding division
+		printf "${MAGENTA}%s${NC} %s  %s%s " $user $nb $pct "%"
 		print_stats $pct
-		(( i+=1 ))
 	done < contributors.txt
 fi
 [ ! -f contributors.txt ] && print_error "⟹  Oups! No contributors found." || printf "\n"
@@ -128,19 +127,20 @@ contributors=`git log | grep Author | tr -d ' ' | cut -d '<' -f 2 | cut -d '@' -
 for name in $contributors
 do
 	nb_occ=`git log | grep Author | grep $name | wc -l | bc`
-	printf "Nb of commits by ${MAGENTA}%s${NC}: ${GREEN}%s${NC}\n" $name $nb_occ
 	echo $name $nb_occ >> contributors.txt
 done
 [ -f contributors.txt ] && total_commits=`awk '{s+=$2} END {print s}' contributors.txt` || total_commits=0
+printf "Total number of commits: "
+[ $total_commits -ne 0 ] && print_ok $total_commits || print_error $total_commits
 if [ -f contributors.txt ]; then
 	while read line
 	do
 		nb=`echo $line | awk '{print $2}'`
-		[ $total_files -ne 0 ] && pct=`echo "scale=2; ($nb/$total_files)" | bc`
-		pct=`echo "($pct * 100)/1" | bc`
-		printf "%s %s%s " "$line" $pct "%"
+		user=`echo $line | awk '{print $1}'`
+		#[ $total_commits -ne 0 ] && pct=`awk "BEGIN { pc=100*${nb}/${total_commits}; i=int(pc); print (pc-i<0.5)?i:i+1 }"`
+		[ $total_commits -ne 0 ] && pct=`expr 200 \* $nb \/ $total_commits \% 2 + 100 \* $nb \/ $total_commits` #Faster implementation for rounding division
+		printf "${MAGENTA}%s${NC} %s  %s%s " $user $nb $pct "%"
 		print_stats $pct
-		(( i+=1 ))
 	done < contributors.txt
 fi
 [ ! -f contributors.txt ] && print_error "⟹  Oups! No contributors found." || printf "\n"
