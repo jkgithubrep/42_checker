@@ -99,10 +99,12 @@ params="$*"
 
 # Check if there is a git repository to clone
 clone=0
-if [ $# -gt 1 ] && [ $1 == "git" ] && [ $2 == "clone" ] && [ "$3" != "" ]; then
-	[ "$4" = "" ] && clone_name=`basename $3` || clone_name="$4"
-	printf "Cloning ${MAGENTA}%s${NC} in ${MAGENTA}%s${NC}...\n" "$3" "$clone_dest_path"
-	git clone "$3" "$clone_dest_path/$clone_name"
+if [ $# -gt 1 ] && ( [ $1 == "-r" ] || [ $1 == '--clone' ] ) && [ $2 != "" ]; then
+	repo="$2"
+	clone_name="$3"
+	[ "$clone_name" = "" ] && clone_name=`basename $repo`
+	printf "Cloning ${MAGENTA}%s${NC} in ${MAGENTA}%s${NC}...\n" "$repo" "$clone_dest_path"
+	git clone "$repo" "$clone_dest_path/$clone_name"
 	[ "$?" -eq 0 ] && params="-e" || exit
 	clone=1
 	cd "$clone_dest_path/$clone_name"
@@ -112,9 +114,10 @@ fi
 options_list="-a --author -c --contrib -d --headers -e --all -g --git -h --help -n --norminette -m --makefiles"
 all_in_list=`check_all_options $*`
 if [ $clone = 0 ] && ( [ $# -eq 0 ] || ( [ $# -gt 0 ] && [ "$all_in_list" -eq 0 ] )); then
-	printf "Usage: sh 42_checker [options] | [git clone repo dest]\n"
+	printf "Usage: sh 42_checker [options] [git_repo] [clone_name]\n"
 	printf "Options:\n"
 	printf "%s\n" " -e, --all               Check everything."
+	printf "%s\n" " -r, --clone             Clone repository given as parameters before checking everything."
 	printf "%s\n" " -h, --help              Print this message and exit."
 	printf "%s\n" " -a, --author            Check for author file."
 	printf "%s\n" " -n, --norminette        Check norminette."
@@ -197,7 +200,7 @@ if [ $is_in_list -eq "1" ]; then
 	do
 		printf "Testing ${MAGENTA}$makefile/Makefile${NC}...\n"
 		printf "> Relink? "
-		relink=`make --silent -C $makefile fclean; make --silent -C $makefile; make -C $makefile | grep -E "(\.o|\.c)" | wc -l | bc`
+		relink=`make --silent -C $makefile fclean 2> /dev/null; make --silent -C $makefile 2> /dev/null; make -C $makefile 2> /dev/null | grep -E "(\.o|\.c)" | wc -l | bc`
 		[ "$relink" -ne 0 ] && print_error "YES" || print_ok "NO"
 		printf "> Wildcards? "
 		makefile_path=`find $makefile -maxdepth 1 -type f -name "[Mm]akefile" | tr -d '\n'`
