@@ -201,7 +201,7 @@ if [ $is_in_list -eq "1" ]; then
 		[ "$relink" -ne 0 ] && print_error "YES" || print_ok "NO"
 		printf "> Wildcards? "
 		makefile_path=`find $makefile -maxdepth 1 -type f -name "[Mm]akefile" | tr -d '\n'`
-		wildcard=`tail -n +12 $makefile_path | grep -E "\*" | grep -E "\.c" | wc -l | bc`
+		wildcard=`tail -n +12 $makefile_path | grep '\*.*\.c' | wc -l | bc`
 		[ $wildcard -ne 0 ] && print_error "YES" || print_ok "NO"
 #		printf "> Recompile? "
 #		src_files=`make --silent -C $makefile fclean && make -C $makefile | grep -E -o "\b\w*\.o" | sort | uniq | sed 's/\.o/\.c/g'`
