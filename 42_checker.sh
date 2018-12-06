@@ -114,14 +114,14 @@ all_in_list=`check_all_options $*`
 if [ $clone = 0 ] && ( [ $# -eq 0 ] || ( [ $# -gt 0 ] && [ "$all_in_list" -eq 0 ] )); then
 	printf "Usage: sh 42_checker [options] | [git clone repo dest]\n"
 	printf "Options:\n"
-	printf "%s\n" " -a, --author			Check for author file."
-	printf "%s\n" " -c, --contrib			Check project contributors."
-	printf "%s\n" " -d, --headers			Check matching headers with file name."
-	printf "%s\n" " -e, --all			Check everything."
-	printf "%s\n" " -g, --git			Check git logs."
-	printf "%s\n" " -h, --help			Print this message and exit."
-	printf "%s\n" " -n, --norminette		Check norminette."
-	printf "%s\n" " -m, --makefiles		Check makefiles."
+	printf "%s\n" " -e, --all               Check everything."
+	printf "%s\n" " -h, --help              Print this message and exit."
+	printf "%s\n" " -a, --author            Check for author file."
+	printf "%s\n" " -n, --norminette        Check norminette."
+	printf "%s\n" " -d, --headers           Check matching headers with file name."
+	printf "%s\n" " -m, --makefiles         Check makefiles."
+	printf "%s\n" " -c, --contrib           Check project contributors."
+	printf "%s\n" " -l, --git-logs          Check git logs."
 	exit
 fi
 
@@ -182,6 +182,52 @@ if [ $is_in_list -eq "1" ]; then
 	printf "\n"
 fi
 
+### Check Makefiles ###
+
+options_list="-m --makefiles -e --all"
+is_in_list=`check_option $params`
+if [ $is_in_list -eq "1" ]; then
+	print_header "CHECK MAKEFILES"
+	printf "Check that Makefiles work as expected (no relink, dependencies,...)\n"
+	makefiles=`find . -type f -name "[Mm]akefile" -exec dirname {} \;`
+	nb_makefiles=`echo $makefiles | wc -w | bc`
+	printf "Number of Makefiles found: "
+	[ $nb_makefiles -ne 0 ] && print_ok $nb_makefiles || print_error $nb_makefiles
+	for makefile in $makefiles
+	do
+		printf "Testing ${MAGENTA}$makefile/Makefile${NC}...\n"
+		printf "> Relink? "
+		relink=`make --silent -C $makefile fclean; make --silent -C $makefile; make -C $makefile | grep -E "(\.o|\.c)" | wc -l | bc`
+		[ "$relink" -ne 0 ] && print_error "YES" || print_ok "NO"
+		printf "> Wildcards? "
+		makefile_path=`find $makefile -maxdepth 1 -type f -name "[Mm]akefile" | tr -d '\n'`
+		wildcard=`tail -n +12 $makefile_path | grep -E "\*" | grep -E "\.c" | wc -l | bc`
+		[ $wildcard -ne 0 ] && print_error "YES" || print_ok "NO"
+#		printf "> Recompile? "
+#		src_files=`make --silent -C $makefile fclean && make -C $makefile | grep -E -o "\b\w*\.o" | sort | uniq | sed 's/\.o/\.c/g'`
+#		fail_recompile=0
+#		for src in $src_files
+#		do
+#			if [ $fail_recompile -eq 0 ]; then
+#				make --silent -C $makefile
+#				find . -type f -name "$src" -exec touch {} \;
+#				nb_obj_recompiled=`make -C $makefile | grep -E -o "\b\w*\.o" | sort | uniq | wc -l | bc`
+#				if [ "$nb_obj_recompiled" -eq 0 ]; then
+#					fail_recompile=1
+#					echo $src >> srcs_errors.txt
+#				fi
+#			fi
+#		done
+#		if [ "$fail_recompile" -eq 1 ]; then
+#			print_error "NO"
+#			srcs_errors=`cat srcs_errors.txt | tr '\n' ' ' | sed 's/ *$//g'`
+#			rm -f srcs_errors.txt
+#			printf "Errors: (%s)\n" "$srcs_errors"
+#		else
+#			print_ok "YES"
+#		fi
+	done
+fi
 
 ### Check project contributors ###
 
@@ -255,47 +301,4 @@ if [ $is_in_list -eq "1" ]; then
 	fi
 	[ ! -f contributors.txt ] && print_error "⟹  Oups! No contributors found." || printf "\n"
 	rm -f contributors.txt
-fi
-
-### Check Makefiles ###
-
-options_list="-m --makefiles -e --all"
-is_in_list=`check_option $params`
-if [ $is_in_list -eq "1" ]; then
-	print_header "CHECK MAKEFILES"
-	printf "Check that Makefiles work as expected (no relink, dependencies,...)\n"
-	makefiles=`find . -type f -name "[Mm]akefile" -exec dirname {} \;`
-	nb_makefiles=`echo $makefiles | wc -w | bc`
-	printf "Number of Makefiles found: "
-	[ $nb_makefiles -ne 0 ] && print_ok $nb_makefiles || print_error $nb_makefiles
-	for makefile in $makefiles
-	do
-		printf "Testing ${MAGENTA}$makefile/Makefile${NC}...\n"
-		printf "> Relink? "
-		relink=`make --silent -C $makefile fclean; make --silent -C $makefile; make -C $makefile | grep -E "(\.o|\.c)" | wc -l | bc`
-		[ "$relink" -ne 0 ] && print_error "YES" || print_ok "NO"
-#		printf "> Recompile? "
-#		src_files=`make --silent -C $makefile fclean && make -C $makefile | grep -E -o "\b\w*\.o" | sort | uniq | sed 's/\.o/\.c/g'`
-#		fail_recompile=0
-#		for src in $src_files
-#		do
-#			if [ $fail_recompile -eq 0 ]; then
-#				make --silent -C $makefile
-#				find . -type f -name "$src" -exec touch {} \;
-#				nb_obj_recompiled=`make -C $makefile | grep -E -o "\b\w*\.o" | sort | uniq | wc -l | bc`
-#				if [ "$nb_obj_recompiled" -eq 0 ]; then
-#					fail_recompile=1
-#					echo $src >> srcs_errors.txt
-#				fi
-#			fi
-#		done
-#		if [ "$fail_recompile" -eq 1 ]; then
-#			print_error "NO"
-#			srcs_errors=`cat srcs_errors.txt | tr '\n' ' ' | sed 's/ *$//g'`
-#			rm -f srcs_errors.txt
-#			printf "Errors: (%s)\n" "$srcs_errors"
-#		else
-#			print_ok "YES"
-#		fi
-	done
 fi
