@@ -10,7 +10,9 @@ BLUE='\033[0;34m'
 MAGENTA='\033[0;35m'
 NC='\033[0m'
 
-clone_dest_path=~/goinfre
+# Path
+dest_fold=`whoami`
+clone_dest_path="/tmp/$dest_fold"
 
 
 #############
@@ -112,8 +114,10 @@ fi
 
 # Display usage
 options_list="-a --author -c --contrib -d --headers -e --all -g --git -h --help -n --norminette -m --makefiles"
-all_in_list=`check_all_options $*`
-if [ $clone = 0 ] && ( [ $# -eq 0 ] || ( [ $# -gt 0 ] && [ "$all_in_list" -eq 0 ] )); then
+all_in_list=`check_all_options $params`
+options_list="-h --help"
+is_in_list=`check_option $params`
+if [ $clone = 0 ] && ( [ $# -eq 0 ] || [ $is_in_list -eq "1" ] ||  ( [ $# -gt 0 ] && [ "$all_in_list" -eq 0 ] )); then
 	printf "Usage: sh 42_checker [options] [git_repo] [clone_name]\n"
 	printf "Options:\n"
 	printf "%s\n" " -e, --all               Check everything."
@@ -124,7 +128,7 @@ if [ $clone = 0 ] && ( [ $# -eq 0 ] || ( [ $# -gt 0 ] && [ "$all_in_list" -eq 0 
 	printf "%s\n" " -d, --headers           Check matching headers with file name."
 	printf "%s\n" " -m, --makefiles         Check makefiles."
 	printf "%s\n" " -c, --contrib           Check project contributors."
-	printf "%s\n" " -l, --git-logs          Check git logs."
+	printf "%s\n" " -g, --git-logs          Check git logs."
 	exit
 fi
 
@@ -191,7 +195,7 @@ options_list="-m --makefiles -e --all"
 is_in_list=`check_option $params`
 if [ $is_in_list -eq "1" ]; then
 	print_header "CHECK MAKEFILES"
-	printf "Check that Makefiles work as expected (no relink, dependencies,...)\n"
+	printf "Check that Makefiles work as expected (no relink, no wildcards...)\n"
 	makefiles=`find . -type f -name "[Mm]akefile" -exec dirname {} \;`
 	nb_makefiles=`echo $makefiles | wc -w | bc`
 	printf "Number of Makefiles found: "
