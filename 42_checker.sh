@@ -74,7 +74,7 @@ clone_repo(){
 	CLONE_NAME="${DEST_FOLD}_$date"
 	printf "Cloning ${MAGENTA}%s${NC} in ${MAGENTA}%s${NC}...\n" "$repo" "$CLONE_DEST_PATH"
 	git clone "$repo" "$CLONE_DEST_PATH/$CLONE_NAME"
-	[ "$?" -ne 0 ] && exit
+	[ $? -ne 0 ] && exit
 }
 
 check_author_file(){
