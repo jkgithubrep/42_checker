@@ -1,6 +1,4 @@
-#############
-# VARIABLES #
-#############
+# ----- VARIABLES -----
 
 # Colors
 RED='\033[0;31m'
@@ -10,14 +8,8 @@ BLUE='\033[0;34m'
 MAGENTA='\033[0;35m'
 NC='\033[0m'
 
-# Path
-dest_fold=`whoami`
-clone_dest_path="/tmp/$dest_fold"
 
-
-#############
-# FUNCTIONS #
-#############
+# ----- FUNCTIONS -----
 
 # Print number of asterisks specify as parameter
 print_asterisks(){
@@ -51,9 +43,9 @@ print_ok(){
 
 # Print stats in visual format
 print_stats(){
-	scale=3
-	limit=`echo "$1/$scale" | bc`
-	count=0
+	local scale=3
+	local limit=`echo "$1/$scale" | bc`
+	local count=0
 	while [ $count -lt $limit ]
 	do
 		printf "${GREEN}+${NC}"
@@ -62,63 +54,8 @@ print_stats(){
 	printf "\n"
 }
 
-# Check that at least one parameter is in options_list
-check_option(){
-	while [ "$#" -gt 0 ]
-	do
-		for option in $options_list
-		do
-			[ "$option" = $1 ] && echo 1 && return 1
-		done
-		shift
-	done
-	echo 0
-	return 0
-}
-
-# Check that all parameters are in options_list
-check_all_options(){
-	nb_arg="$#"
-	count=0
-	while [ "$#" -gt 0 ]
-	do
-		for option in $options_list
-		do
-			[ "$option" = $1 ] && (( count+=1 ))
-		done
-		shift
-	done
-	[ $count -lt $nb_arg ] && echo 0 || echo 1
-}
-
-
-#########
-# USAGE #
-#########
-
-# Get params
-params="$*"
-
-# Check if there is a git repository to clone
-clone=0
-if [ $# -gt 1 ] && ( [ $1 == "-r" ] || [ $1 == '--clone' ] ) && [ $2 != "" ]; then
-	repo="$2"
-	clone_name="$3"
-	[ "$clone_name" = "" ] && clone_name=`basename $repo`
-	printf "Cloning ${MAGENTA}%s${NC} in ${MAGENTA}%s${NC}...\n" "$repo" "$clone_dest_path"
-	git clone "$repo" "$clone_dest_path/$clone_name"
-	[ "$?" -eq 0 ] && params="-e" || exit
-	clone=1
-	cd "$clone_dest_path/$clone_name"
-fi
-
-# Display usage
-options_list="-a --author -c --contrib -d --headers -e --all -g --git -h --help -n --norminette -m --makefiles"
-all_in_list=`check_all_options $params`
-options_list="-h --help"
-is_in_list=`check_option $params`
-if [ $clone = 0 ] && ( [ $# -eq 0 ] || [ $is_in_list -eq "1" ] ||  ( [ $# -gt 0 ] && [ "$all_in_list" -eq 0 ] )); then
-	printf "Usage: sh 42_checker [options] [git_repo] [clone_name]\n"
+display_usage(){
+	printf "Usage: sh 42_checker [options] [git_repo_url clone_name]\n"
 	printf "Options:\n"
 	printf "%s\n" " -e, --all               Check everything."
 	printf "%s\n" " -r, --clone             Clone repository given as parameters before checking everything."
@@ -129,20 +66,20 @@ if [ $clone = 0 ] && ( [ $# -eq 0 ] || [ $is_in_list -eq "1" ] ||  ( [ $# -gt 0 
 	printf "%s\n" " -m, --makefiles         Check makefiles."
 	printf "%s\n" " -c, --contrib           Check project contributors."
 	printf "%s\n" " -g, --git-logs          Check git logs."
-	exit
-fi
+}
 
-##########
-# CHECKS #
-##########
+clone_repo(){
+	local repo="$1"
+	local date=`date "+%y%m%d%H%M%S"`
+	CLONE_NAME="${DEST_FOLD}_$date"
+	printf "Cloning ${MAGENTA}%s${NC} in ${MAGENTA}%s${NC}...\n" "$repo" "$CLONE_DEST_PATH"
+	git clone "$repo" "$CLONE_DEST_PATH/$CLONE_NAME"
+	[ "$?" -ne 0 ] && exit
+}
 
-### Check author file ###
-
-options_list="-a --author -e --all"
-is_in_list=`check_option $params`
-if [ $is_in_list -eq "1" ]; then
+check_author_file(){
 	print_header "CHECK AUTHOR FILE"
-	has_author=`find . -maxdepth 1 -type f -name "author" -o -name "auteur" | wc -l | bc`
+	local has_author=`find . -maxdepth 1 -type f -name "author" -o -name "auteur" | wc -l | bc`
 	if [ $has_author -eq 0 ]; then
 		print_error "⟹  Oups! Author file not found."
 	else
@@ -151,29 +88,21 @@ if [ $is_in_list -eq "1" ]; then
 		find . -maxdepth 1 -type f -name "author" -o -name "auteur" -exec cat -e {} \;
 	fi
 	printf "\n"
-fi
+}
 
-### Check norminette ###
-
-options_list="-n --norminette -e --all"
-is_in_list=`check_option $params`
-if [ $is_in_list -eq "1" ]; then
+check_norminette(){
 	print_header "CHECK NORMINETTE"
 	norminette | grep -E -B1 --color=auto "^(Error|Warning)" | grep -v "^--" | grep -E -v "Not a valid file" | grep -E -B1 --color=auto "^(Error|Warning)"
-	norm_res=`norminette | grep -E --color=auto "^(Error|Warning)" | grep -E -v "Not a valid file" | wc -l | bc`
+	local norm_res=`norminette | grep -E --color=auto "^(Error|Warning)" | grep -E -v "Not a valid file" | wc -l | bc`
 	if [ $norm_res -ne 0 ]; then
 		print_error "⟹  Oups! Norminette test failed."
 	else
 		print_ok "⟹  Good! Norminette test succeeded."
 	fi
 	printf "\n"
-fi
+}
 
-### Check files headers for non matching names ###
-
-options_list="-d --headers -e --all"
-is_in_list=`check_option $params`
-if [ $is_in_list -eq "1" ]; then
+check_file_headers(){
 	print_header "CHECK HEADERS"
 	printf "Check files headers for non matching names....\n"
 	{
@@ -187,17 +116,13 @@ if [ $is_in_list -eq "1" ]; then
 	fi
 	rm -f results.txt
 	printf "\n"
-fi
+}
 
-### Check Makefiles ###
-
-options_list="-m --makefiles -e --all"
-is_in_list=`check_option $params`
-if [ $is_in_list -eq "1" ]; then
+check_makefiles(){
 	print_header "CHECK MAKEFILES"
 	printf "Check that Makefiles work as expected (no relink, no wildcards...)\n"
-	makefiles=`find . -type f -name "[Mm]akefile" -exec dirname {} \;`
-	nb_makefiles=`echo $makefiles | wc -w | bc`
+	local makefiles=`find . -type f -name "[Mm]akefile" -exec dirname {} \;`
+	local nb_makefiles=`echo $makefiles | wc -w | bc`
 	printf "Number of Makefiles found: "
 	[ $nb_makefiles -ne 0 ] && print_ok $nb_makefiles || print_error $nb_makefiles
 	for makefile in $makefiles
@@ -234,24 +159,20 @@ if [ $is_in_list -eq "1" ]; then
 #			print_ok "YES"
 #		fi
 	done
-fi
+}
 
-### Check project contributors ###
-
-options_list="-c --contrib -e --all"
-is_in_list=`check_option $params`
-if [ $is_in_list -eq "1" ]; then
+check_contributors(){
 	print_header "CHECK CONTRIBUTORS"
 	printf "Check number of .c files created by each contributor to the project...\n"
 	printf "Type the name of the directories to exclude (leave empty or ex: dirname1 dirname2 ...): "
 	read dir_excluded
-	nb_dir=`echo $dir_excluded | tr -d '\n' | wc -w | bc`
-	directory="directory"
+	local nb_dir=`echo $dir_excluded | tr -d '\n' | wc -w | bc`
+	local directory="directory"
 	[ $nb_dir -gt 1 ] && directory="directories"
 	printf "%d %s will be excluded from search" $nb_dir $directory
 	[ $nb_dir -gt 0 ] && printf " (${MAGENTA}%s${NC})\n" "$dir_excluded" || printf "\n"
 	[ $nb_dir -gt 1 ] && dir_excluded=`echo $dir_excluded | sed -e 's/ *$//g' -e 's/ / --exclude-dir=/g' | tr -d '\n'`
-	contributors=`grep -E -r -h "By:" --exclude-dir=$dir_excluded --include "*.c" . | tr -d ' ' | cut -d : -f 2 | cut -d '<' -f 1 | sort | uniq | tr '\n' ' ' | sed -e 's/ *$//g'`
+	local contributors=`grep -E -r -h "By:" --exclude-dir=$dir_excluded --include "*.c" . | tr -d ' ' | cut -d : -f 2 | cut -d '<' -f 1 | sort | uniq | tr '\n' ' ' | sed -e 's/ *$//g'`
 	for name in $contributors
 	do
 		nb_occ=`grep -E -r -h "By: $name" --exclude-dir=$dir_excluded --include "*.c" . | wc -l | bc`
@@ -277,16 +198,12 @@ if [ $is_in_list -eq "1" ]; then
 	fi
 	[ ! -f contributors.txt ] && print_error "⟹  Oups! No contributors found." || printf "\n"
 	rm -f contributors.txt
-fi
+}
 
-### Check git info ###
-
-options_list="-g --git -e --all"
-is_in_list=`check_option $params`
-if [ $is_in_list -eq "1" ]; then
+check_git_info(){
 	print_header "CHECK GIT"
 	printf "Check git log history...\n"
-	contributors=`git log | grep Author | tr -d ' ' | cut -d '<' -f 2 | cut -d '@' -f 1 | sort | uniq | tr '\n' ' ' | sed -e 's/ *$//g'`
+	local contributors=`git log | grep Author | tr -d ' ' | cut -d '<' -f 2 | cut -d '@' -f 1 | sort | uniq | tr '\n' ' ' | sed -e 's/ *$//g'`
 	for name in $contributors
 	do
 		nb_occ=`git log | grep Author | grep $name | wc -l | bc`
@@ -308,4 +225,100 @@ if [ $is_in_list -eq "1" ]; then
 	fi
 	[ ! -f contributors.txt ] && print_error "⟹  Oups! No contributors found." || printf "\n"
 	rm -f contributors.txt
+}
+
+parse_parameters(){
+	[ $# -eq 0 ] && ERR=true && return
+	while [ "$#" -gt 1 ]
+	do
+		param="$1"
+		echo "$param"
+		if [ $param = "-e" ] || [ $param = "--all" ]; then
+			ALL=true
+			return
+		elif [ $param = "-r" ] || [ $param = "--clone" ]; then
+			CLONE=true
+		elif [ $param = "-h" ] || [ $param = "--help" ]; then
+			HELP=true
+		elif [ $param = "-a" ] || [ $param =  "--author" ]; then
+			AUTHOR=true
+		elif [ $param = "-n" ] || [ $param = "--norm" ]; then
+			NORM=true
+		elif [ $param = "-d" ] || [ $param = "--headers" ]; then
+			HEADERS=true
+		elif [ $param = "-m" ] || [ $param = "--makefiles" ]; then
+			MAKEFILES=true
+		elif [ $param = "-c" ] || [ $param = "--contrib" ]; then
+			CONTRIB=true
+		elif [ $param = "-g" ] || [ $param = "--git" ]; then
+			GIT=true
+		else
+			ERR=true
+			return
+		fi
+		shift
+	done
+	if ! $ERR && $HELP || $AUTHOR || $NORM || $HEADERS || $MAKEFILES || $CONTRIB || $GIT; then
+		ALL=false
+	fi	
+	REPO=$1
+}
+
+# ----- SCRIPT -----
+
+DEST_FOLD=`whoami`
+CLONE_DEST_PATH="/tmp/$DEST_FOLD"
+
+PARAMS_LIST="$@"
+
+# Options
+ERR=false
+ALL=true
+CLONE=false
+HELP=false
+AUTHOR=false
+NORM=false
+HEADERS=false
+MAKEFILES=false
+CONTRIB=false
+GIT=false
+REPO=""
+
+parse_parameters $PARAMS_LIST
+
+if $ERR || $HELP; then
+	display_usage	
+	exit;
+fi
+	
+if $CLONE; then
+	clone_repo $REPO
+	cd "$CLONE_DEST_PATH/$CLONE_NAME"
+else
+	cd $REPO 2> /dev/null
+	[ $? -ne 0 ] && print_error "Wrong path given as parameter" && exit
+fi
+
+if $ALL || $AUTHOR; then
+	check_author_file
+fi
+
+if $ALL || $NORM; then
+	check_norminette
+fi
+
+if $ALL || $HEADERS; then
+	check_file_headers
+fi
+
+if $ALL || $MAKEFILES; then
+	check_makefiles
+fi
+
+if $ALL || $CONTRIB; then
+	check_contributors
+fi
+
+if $ALL || $GIT; then
+	check_git_info
 fi
