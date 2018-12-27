@@ -298,7 +298,11 @@ if $CLONE; then
 	cd "$CLONE_DEST_PATH/$CLONE_NAME"
 else
 	cd $REPO 2> /dev/null
-	[ $? -ne 0 ] && print_error "Wrong path given as parameter" && exit
+	if [ $? -ne 0 ];then
+		print_error "Path not valid."
+		print_error "Don't forget to add -r option if you want to clone a repository."
+		exit
+	fi
 fi
 
 if $ALL || $AUTHOR; then
