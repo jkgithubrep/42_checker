@@ -136,13 +136,8 @@ check_makefiles(){
 	do
 		printf "Testing ${MAGENTA}$makefile/Makefile${NC}...\n"
 		printf "> Relink? "
-		local check_stdout=`make -C $makefile fclean > /dev/null 2>&1; make -C $makefile 2> /dev/null | wc -l | bc` #Check if Makefile prints on stdout
-		if [ $check_stdout -eq 0 ]; then
-			local relink=`make --silent -C $makefile fclean > /dev/null 2>&1; make --silent -C $makefile > /dev/null 2>&1; make -C $makefile | grep -E "(\.o|\.c)" | wc -l | bc`
-			[ "$relink" -ne 0 ] && print_error "YES" || print_ok "NO"
-		else
-			print_warn "STDOUT"
-		fi
+		local relink=`make --silent -C $makefile fclean > /dev/null 2>&1; make --silent -C $makefile > /dev/null 2>&1; make -C $makefile | grep -E "(\.o|\.c)" | wc -l | bc`
+		[ "$relink" -ne 0 ] && print_error "YES" || print_ok "NO"
 		printf "> Wildcards? "
 		makefile_path=`find $makefile -maxdepth 1 -type f -name "[Mm]akefile" | tr -d '\n'`
 		wildcard=`tail -n +12 $makefile_path | grep '\*.*\.c' | wc -l | bc`
