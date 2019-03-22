@@ -136,8 +136,15 @@ check_makefiles(){
 	do
 		printf "Testing ${MAGENTA}$makefile/Makefile${NC}...\n"
 		printf "> Relink? "
-		local relink=`make --silent -C $makefile fclean > /dev/null 2>&1; make --silent -C $makefile > /dev/null 2>&1; make -C $makefile | grep -E "(\.o|\.c)" | wc -l | bc`
-		[ "$relink" -ne 0 ] && print_error "YES" || print_ok "NO"
+		`make --silent -C $makefile re > /dev/null 2>&1`
+		local target_file=`grep -w  NAME $makefile/Makefile | grep = | tr -d '[:blank:]' | cut -d'=' -f2- | cut -d':' -f2-`
+		eval $(stat -s $makefile/$target_file)
+		local mtime_before=$st_mtime
+		sleep 1
+		`make --silent -C $makefile > /dev/null 2>&1`
+		eval $(stat -s $makefile/$target_file)
+		local mtime_after=$st_mtime
+		[ "$mtime_before" -ne "$mtime_after" ] && print_error "YES" || print_ok "NO"
 		printf "> Wildcards? "
 		makefile_path=`find $makefile -maxdepth 1 -type f -name "[Mm]akefile" | tr -d '\n'`
 		wildcard=`tail -n +12 $makefile_path | grep '\*.*\.c' | wc -l | bc`
