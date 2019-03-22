@@ -141,7 +141,12 @@ check_makefiles(){
 		printf "> Wildcards? "
 		makefile_path=`find $makefile -maxdepth 1 -type f -name "[Mm]akefile" | tr -d '\n'`
 		wildcard=`tail -n +12 $makefile_path | grep '\*.*\.c' | wc -l | bc`
-		[ $wildcard -ne 0 ] && print_error "YES" || print_ok "NO"
+		if [ $wildcard -ne 0 ]; then
+			print_error "YES"
+			tail -n +12 $makefile_path | grep '\*.*\.c'
+		else
+			print_ok "NO"
+		fi
 #		printf "> Recompile? "
 #		src_files=`make --silent -C $makefile fclean && make -C $makefile | grep -E -o "\b\w*\.o" | sort | uniq | sed 's/\.o/\.c/g'`
 #		fail_recompile=0
