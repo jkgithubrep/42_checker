@@ -5,7 +5,7 @@
 ## Getting started
 
 ```
-git clone https://gitlab.com/jkgitlabwork/42_project_checker.git
+git clone https://github.com/jkgithubrep/42_checker.git 
 ```
 
 ## Usage
