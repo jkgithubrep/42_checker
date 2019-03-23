@@ -36,7 +36,3 @@ sh 42_checker -a -n -m /path/to/project
 ## Author
 
 by **jkettani**
-
-## License
-
-This project is licensed under the **GNU General Public License v3.0**.
