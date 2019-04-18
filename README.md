@@ -5,7 +5,7 @@
 ## Getting started
 
 ```
-git clone https://gitlab.com/jkgitlabwork/42_project_checker.git
+git clone https://github.com/jkgithubrep/42_checker.git 
 ```
 
 ## Usage
@@ -36,7 +36,3 @@ sh 42_checker -a -n -m /path/to/project
 ## Author
 
 by **jkettani**
-
-## License
-
-This project is licensed under the **GNU General Public License v3.0**.
