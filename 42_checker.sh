@@ -239,7 +239,6 @@ parse_parameters(){
 	while [ "$#" -gt 1 ]
 	do
 		param="$1"
-		echo "$param"
 		if [ $param = "-e" ] || [ $param = "--all" ]; then
 			ALL=true
 			return
