@@ -180,15 +180,19 @@ check_makefiles(){
 		print_result_check_cross $all_rule
 		printf "\n"
 		printf "> Relink? "
-		`make --silent -C $makefile re > /dev/null 2>&1`
-		local target_file=`grep -E "\bNAME\b\s*=" $makefile/Makefile | tr -d '[:blank:]' | cut -d'=' -f2-`
-		eval $(stat -s $makefile/$target_file)
-		local mtime_before=$st_mtime
-		sleep 1
-		`make --silent -C $makefile > /dev/null 2>&1`
-		eval $(stat -s $makefile/$target_file)
-		local mtime_after=$st_mtime
-		[ "$mtime_before" -ne "$mtime_after" ] && print_error "YES" || print_ok "NO"
+		if [ "$name_rule" -eq 0 ]; then
+			print_warn "Target not found"
+		else
+			`make --silent -C $makefile re > /dev/null 2>&1`
+			local target_file=`grep -E "\bNAME\b\s*(:|\?)?=" $makefile/Makefile | tr -d '[:blank:]' | cut -d'=' -f2-`
+			eval $(stat -s $makefile/$target_file)
+			local mtime_before=$st_mtime
+			sleep 1
+			`make --silent -C $makefile > /dev/null 2>&1`
+			eval $(stat -s $makefile/$target_file)
+			local mtime_after=$st_mtime
+			[ "$mtime_before" -ne "$mtime_after" ] && print_error "YES" || print_ok "NO"
+		fi
 		printf "> Wildcards? "
 		makefile_path=`find $makefile -maxdepth 1 -type f -name "[Mm]akefile" | tr -d '\n'`
 		wildcard=`tail -n +12 $makefile_path | grep '\*.*\.c' | wc -l | bc`
