@@ -118,8 +118,8 @@ check_operators(){
 	print_header "CHECK OPERATORS"
 	grep -R -E --include=\*.{c,h} " (\+|-|/|%|&&|&|\|\||\||\^)$" .
 	local ret=$?
-	printf "\n"
 	if [ $ret -ne 1 ]; then
+		printf "\n"
 		print_error "⟹  Oops! Operator at the end of lines found."
 	else
 		print_ok "⟹  Good! Operator test succeeded."
