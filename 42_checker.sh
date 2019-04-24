@@ -3,11 +3,11 @@
 # ----- VARIABLES -----
 
 # Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[1;34m'
+MAGENTA='\033[1;35m'
 NC='\033[0m'
 
 
@@ -112,7 +112,7 @@ check_norminette(){
 
 check_operators(){
 	print_header "CHECK OPERATORS"
-	local res=`grep -R -E --include=\*.{c,h} " (\+|-|=|&&|&|\|\||\||\^)$" . | wc -l`
+	local res=`grep -R -E --include=\*.{c,h} " (\+|-|=|&&|&|\|\||\||\^)$" . | wc -l | bc`
 	if [ "$res" -ne 0 ]; then
 		print_error "⟹  Oops! Operator at the end of lines found."
 		grep -R -E --include=\*.{c,h} " (\+|-|=|&&|&|\|\||\||\^)$" .
@@ -138,6 +138,15 @@ check_file_headers(){
 	printf "\n"
 }
 
+# Print a `check' or `cross' sign based on the value of the argument
+print_result_check_cross(){
+	if [ "$1" -eq 0 ]; then
+		printf " ${RED}✗${NC}"
+	else
+		printf " ${GREEN}✔${NC}"
+	fi
+}
+
 check_makefiles(){
 	print_header "CHECK MAKEFILES"
 	printf "Check that Makefiles work as expected (no relink, no wildcards...)\n"
@@ -148,6 +157,23 @@ check_makefiles(){
 	for makefile in $makefiles
 	do
 		printf "Testing ${MAGENTA}$makefile/Makefile${NC}...\n"
+		printf "> Mandatory rules? "
+		printf "\$(NAME):"
+		name_rule=`grep -E "\bNAME\b\s*=" $makefile/Makefile | wc -l | bc`
+		print_result_check_cross $name_rule
+		printf ", clean:"
+		clean_rule=`grep -E "^\bclean\b:" $makefile/Makefile | wc -l | bc`
+		print_result_check_cross $clean_rule
+		printf ", fclean:"
+		fclean_rule=`grep -E "^\bfclean\b:" $makefile/Makefile | wc -l | bc`
+		print_result_check_cross $fclean_rule
+		printf ", re:"
+		re_rule=`grep -E "^\bre\b:" $makefile/Makefile | wc -l | bc`
+		print_result_check_cross $re_rule
+		printf ", all:"
+		all_rule=`grep -E "^\ball\b:" $makefile/Makefile | wc -l | bc`
+		print_result_check_cross $all_rule
+		printf "\n"
 		printf "> Relink? "
 		`make --silent -C $makefile re > /dev/null 2>&1`
 		local target_file=`grep -E "\bNAME\b\s*=" $makefile/Makefile | tr -d '[:blank:]' | cut -d'=' -f2-`
