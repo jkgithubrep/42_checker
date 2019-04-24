@@ -63,7 +63,7 @@ print_stats(){
 }
 
 display_usage(){
-	printf "Usage: sh 42_checker [options] [git_repo_url clone_name]\n"
+	printf "Usage: sh 42_checker [options] [path_to_repo | git_repo_url]\n"
 	printf "Options:\n"
 	printf "%s\n" " -e, --all               Check everything."
 	printf "%s\n" " -r, --clone             Clone repository given as parameters before checking everything."
