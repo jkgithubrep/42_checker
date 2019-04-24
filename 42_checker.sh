@@ -100,9 +100,13 @@ check_author_file(){
 
 check_norminette(){
 	print_header "CHECK NORMINETTE"
-	norminette | grep -E -B1 --color=auto "^(Error|Warning)" | grep -v "^--" | grep -E -v "Not a valid file" | grep -E -B1 --color=auto "^(Error|Warning)"
-	local norm_res=`norminette | grep -E --color=auto "^(Error|Warning)" | grep -E -v "Not a valid file" | wc -l | bc`
-	if [ $norm_res -ne 0 ]; then
+	local dir_list=`find . -type f -name "*.[ch]" | cut -d '/' -f2 | sort | uniq`
+	local dir_list_print=`echo $dir_list | tr '\n' ' '`
+	printf ".c or .h files found in the following directories: ${BLUE}$dir_list_print${NC}\n"
+	norminette $dir_list | grep -E -B1 --color=auto "^(Error|Warning)" | grep -v "^--" | grep -E -v "Not a valid file" | grep -E -B1 --color=auto "^(Error|Warning)"
+	local ret=$?
+	printf "\n"
+	if [ $ret -ne 1 ]; then
 		print_error "⟹  Oops! Norminette test failed."
 	else
 		print_ok "⟹  Good! Norminette test succeeded."
@@ -112,10 +116,11 @@ check_norminette(){
 
 check_operators(){
 	print_header "CHECK OPERATORS"
-	local res=`grep -R -E --include=\*.{c,h} " (\+|-|=|&&|&|\|\||\||\^)$" . | wc -l | bc`
-	if [ "$res" -ne 0 ]; then
+	grep -R -E --include=\*.{c,h} " (\+|-|=|&&|&|\|\||\||\^)$" .
+	local ret=$?
+	printf "\n"
+	if [ $ret -ne 1 ]; then
 		print_error "⟹  Oops! Operator at the end of lines found."
-		grep -R -E --include=\*.{c,h} " (\+|-|=|&&|&|\|\||\||\^)$" .
 	else
 		print_ok "⟹  Good! Operator test succeeded."
 	fi
@@ -301,6 +306,8 @@ parse_parameters(){
 			AUTHOR=true
 		elif [ $param = "-n" ] || [ $param = "--norm" ]; then
 			NORM=true
+		elif [ $param = "-o" ] || [ $param = "--operators" ]; then
+			OPERATORS=true
 		elif [ $param = "-d" ] || [ $param = "--headers" ]; then
 			HEADERS=true
 		elif [ $param = "-m" ] || [ $param = "--makefiles" ]; then
@@ -315,7 +322,7 @@ parse_parameters(){
 		fi
 		shift
 	done
-	if ! $ERR && $HELP || $AUTHOR || $NORM || $HEADERS || $MAKEFILES || $CONTRIB || $GIT; then
+	if ! $ERR && $HELP || $AUTHOR || $NORM || $OPERATORS || $HEADERS || $MAKEFILES || $CONTRIB || $GIT; then
 		ALL=false
 	fi	
 	REPO=$1
@@ -369,7 +376,7 @@ if $ALL || $NORM; then
 	check_norminette
 fi
 
-if $ALL || $NORM; then
+if $ALL || $OPERATORS; then
 	check_operators
 fi
 
