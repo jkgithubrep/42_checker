@@ -31,6 +31,7 @@ print_header(){
 	print_asterisks "$1"
 	printf "* %s *\n" "$1"
 	print_asterisks "$1"
+	printf "\n"
 }
 
 # Print error message
@@ -100,16 +101,20 @@ check_author_file(){
 
 check_norminette(){
 	print_header "CHECK NORMINETTE"
-	local dir_list=`find . -type f -name "*.[ch]" | cut -d '/' -f2 | sort | uniq`
-	local dir_list_print=`echo $dir_list | tr '\n' ' '`
-	printf ".c or .h files found in the following directories: ${BLUE}$dir_list_print${NC}\n"
-	norminette $dir_list | grep -E -B1 --color=auto "^(Error|Warning)" | grep -v "^--" | grep -E -v "Not a valid file" | grep -E -B1 --color=auto "^(Error|Warning)"
-	local ret=$?
-	printf "\n"
-	if [ $ret -ne 1 ]; then
-		print_error "⟹  Oops! Norminette test failed."
+	if ! command -v norminette; then
+		print_warn "⟹  norminette command not found"
 	else
-		print_ok "⟹  Good! Norminette test succeeded."
+		local dir_list=`find . -type f -name "*.[ch]" | cut -d '/' -f2 | sort | uniq`
+		local dir_list_print=`echo $dir_list | tr '\n' ' '`
+		printf ".c or .h files found in the following directories: ${BLUE}$dir_list_print${NC}\n"
+		norminette $dir_list | grep -E -B1 --color=auto "^(Error|Warning)" | grep -v "^--" | grep -E -v "Not a valid file" | grep -E -B1 --color=auto "^(Error|Warning)"
+		local ret=$?
+		printf "\n"
+		if [ $ret -ne 1 ]; then
+			print_error "⟹  Oops! Norminette test failed."
+		else
+			print_ok "⟹  Good! Norminette test succeeded."
+		fi
 	fi
 	printf "\n"
 }
@@ -154,7 +159,7 @@ print_result_check_cross(){
 
 check_makefiles(){
 	print_header "CHECK MAKEFILES"
-	printf "Check that Makefiles work as expected (no relink, no wildcards...)\n"
+	printf "Check that Makefiles work as expected (mandatory rules, no relink, no wildcards...)\n"
 	local makefiles=`find . -type f -name "[Mm]akefile" -exec dirname {} \;`
 	local nb_makefiles=`echo $makefiles | wc -w | bc`
 	printf "Number of Makefiles found: "
@@ -183,15 +188,20 @@ check_makefiles(){
 		if [ "$name_rule" -eq 0 ]; then
 			print_warn "Target not found"
 		else
-			`make --silent -C $makefile re > /dev/null 2>&1`
+			make --silent -C $makefile re > /dev/null 2>&1
 			local target_file=`grep -E "\bNAME\b\s*(:|\?)?=" $makefile/Makefile | tr -d '[:blank:]' | cut -d'=' -f2-`
-			eval $(stat -s $makefile/$target_file)
-			local mtime_before=$st_mtime
-			sleep 1
-			`make --silent -C $makefile > /dev/null 2>&1`
-			eval $(stat -s $makefile/$target_file)
-			local mtime_after=$st_mtime
-			[ "$mtime_before" -ne "$mtime_after" ] && print_error "YES" || print_ok "NO"
+			target_file_path=`find $REPO -type f -name "$target_file" -print`
+			if [ "$target_file_path" = "" ]; then
+				print_warn "Target not found"
+			else
+				eval $(stat -s $target_file_path)
+				local mtime_before=$st_mtime
+				sleep 1
+				make --silent -C $makefile > /dev/null 2>&1
+				eval $(stat -s $target_file_path)
+				local mtime_after=$st_mtime
+				[ "$mtime_before" -ne "$mtime_after" ] && print_error "YES" || print_ok "NO"
+			fi
 		fi
 		printf "> Wildcards? "
 		makefile_path=`find $makefile -maxdepth 1 -type f -name "[Mm]akefile" | tr -d '\n'`
