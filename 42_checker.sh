@@ -116,7 +116,7 @@ check_norminette(){
 
 check_operators(){
 	print_header "CHECK OPERATORS"
-	grep -R -E --include=\*.{c,h} " (\+|-|=|&&|&|\|\||\||\^)$" .
+	grep -R -E --include=\*.{c,h} " (\+|-|/|%|&&|&|\|\||\||\^)$" .
 	local ret=$?
 	printf "\n"
 	if [ $ret -ne 1 ]; then
@@ -164,7 +164,7 @@ check_makefiles(){
 		printf "Testing ${MAGENTA}$makefile/Makefile${NC}...\n"
 		printf "> Mandatory rules? "
 		printf "\$(NAME):"
-		name_rule=`grep -E "\bNAME\b\s*=" $makefile/Makefile | wc -l | bc`
+		name_rule=`grep -E "\bNAME\b\s*(:|\?)?=" $makefile/Makefile | wc -l | bc`
 		print_result_check_cross $name_rule
 		printf ", clean:"
 		clean_rule=`grep -E "^\bclean\b:" $makefile/Makefile | wc -l | bc`
