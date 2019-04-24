@@ -69,6 +69,7 @@ display_usage(){
 	printf "%s\n" " -h, --help              Print this message and exit."
 	printf "%s\n" " -a, --author            Check for author file."
 	printf "%s\n" " -n, --norminette        Check norminette."
+	printf "%s\n" " -o, --operators         Check end-of-line operators."
 	printf "%s\n" " -d, --headers           Check matching headers with file name."
 	printf "%s\n" " -m, --makefiles         Check makefiles."
 	printf "%s\n" " -c, --contrib           Check project contributors."
@@ -88,7 +89,7 @@ check_author_file(){
 	print_header "CHECK AUTHOR FILE"
 	local has_author=`find . -maxdepth 1 -type f -name "author" -o -name "auteur" | wc -l | bc`
 	if [ $has_author -eq 0 ]; then
-		print_error "⟹  Oups! Author file not found."
+		print_error "⟹  Oops! Author file not found."
 	else
 		print_ok "⟹  Good! Author file found"
 		printf "%s\n" "Printing author file content..."
@@ -102,9 +103,21 @@ check_norminette(){
 	norminette | grep -E -B1 --color=auto "^(Error|Warning)" | grep -v "^--" | grep -E -v "Not a valid file" | grep -E -B1 --color=auto "^(Error|Warning)"
 	local norm_res=`norminette | grep -E --color=auto "^(Error|Warning)" | grep -E -v "Not a valid file" | wc -l | bc`
 	if [ $norm_res -ne 0 ]; then
-		print_error "⟹  Oups! Norminette test failed."
+		print_error "⟹  Oops! Norminette test failed."
 	else
 		print_ok "⟹  Good! Norminette test succeeded."
+	fi
+	printf "\n"
+}
+
+check_operators(){
+	print_header "CHECK OPERATORS"
+	local res=`grep -R -E --include=\*.{c,h} " (\+|-|=|&&|&|\|\||\||\^)$" . | wc -l`
+	if [ "$res" -ne 0 ]; then
+		print_error "⟹  Oops! Operator at the end of lines found."
+		grep -R -E --include=\*.{c,h} " (\+|-|=|&&|&|\|\||\||\^)$" .
+	else
+		print_ok "⟹  Good! Operator test succeeded."
 	fi
 	printf "\n"
 }
@@ -116,7 +129,7 @@ check_file_headers(){
 	find . -type f -name "*.[ch]"  -exec sh -c 'basename {} > file_name_check_jk.txt' \;  -exec  sh -c 'head -n 4 {} | tail -n 1 | tr -d " " | cut -d : -f 1 | cut -c 3- > file_header_check_jk.txt' \; -exec sh -c "diff file_name_check_jk.txt file_header_check_jk.txt || echo '⟹  file: \033[36m'{}'\033[0m' '\033[31mERROR\033[0m'" \; && rm -f file_name_check_jk.txt file_header_check_jk.txt
 	} 1> results.txt
 	if [ -s results.txt ]; then
-		print_error "⟹  Oups! Non matching names found:"
+		print_error "⟹  Oops! Non matching names found:"
 		cat results.txt
 	else
 		print_ok "⟹  Good! No non matching names found!"
@@ -137,7 +150,7 @@ check_makefiles(){
 		printf "Testing ${MAGENTA}$makefile/Makefile${NC}...\n"
 		printf "> Relink? "
 		`make --silent -C $makefile re > /dev/null 2>&1`
-		local target_file=`grep -w  NAME $makefile/Makefile | grep = | tr -d '[:blank:]' | cut -d'=' -f2- | cut -d':' -f2-`
+		local target_file=`grep -E "\bNAME\b\s*=" $makefile/Makefile | tr -d '[:blank:]' | cut -d'=' -f2-`
 		eval $(stat -s $makefile/$target_file)
 		local mtime_before=$st_mtime
 		sleep 1
@@ -215,7 +228,7 @@ check_contributors(){
 			echo  "$user" "$nb" "$pct%" "$scale"
 		done < contributors.txt) | column -t
 	fi
-	[ ! -f contributors.txt ] && print_error "⟹  Oups! No contributors found." || printf "\n"
+	[ ! -f contributors.txt ] && print_error "⟹  Oops! No contributors found." || printf "\n"
 	rm -f contributors.txt
 }
 
@@ -242,7 +255,7 @@ check_git_info(){
 			echo  "$user" "$nb" "$pct%" "$scale"
 		done < contributors.txt) | column -t
 	fi
-	[ ! -f contributors.txt ] && print_error "⟹  Oups! No contributors found." || printf "\n"
+	[ ! -f contributors.txt ] && print_error "⟹  Oops! No contributors found." || printf "\n"
 	rm -f contributors.txt
 }
 
@@ -299,6 +312,7 @@ NORM=false
 HEADERS=false
 MAKEFILES=false
 CONTRIB=false
+OPERATORS=false
 GIT=false
 REPO=""
 
@@ -327,6 +341,10 @@ fi
 
 if $ALL || $NORM; then
 	check_norminette
+fi
+
+if $ALL || $NORM; then
+	check_operators
 fi
 
 if $ALL || $HEADERS; then
