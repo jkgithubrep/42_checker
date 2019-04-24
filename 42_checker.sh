@@ -218,14 +218,18 @@ check_makefiles(){
 check_contributors(){
 	print_header "CHECK CONTRIBUTORS"
 	printf "Check number of .c files created by each contributor to the project...\n"
-	printf "Type the name of the directories to exclude (leave empty or ex: dirname1 dirname2 ...): "
-	read dir_excluded
-	local nb_dir=`echo $dir_excluded | tr -d '\n' | wc -w | bc`
-	local directory="directory"
-	[ $nb_dir -gt 1 ] && directory="directories"
-	printf "%d %s will be excluded from search" $nb_dir $directory
-	[ $nb_dir -gt 0 ] && printf " (${MAGENTA}%s${NC})\n" "$dir_excluded" || printf "\n"
-	[ $nb_dir -gt 1 ] && dir_excluded=`echo $dir_excluded | sed -e 's/ *$//g' -e 's/ / --exclude-dir=/g' | tr -d '\n'`
+	if $CONTRIB_DIR_EXCLUDE; then 
+		printf "Type the name of the directories to exclude (leave empty or ex: dirname1 dirname2 ...): "
+		read dir_excluded
+		local nb_dir=`echo $dir_excluded | tr -d '\n' | wc -w | bc`
+		local directory="directory"
+		[ $nb_dir -gt 1 ] && directory="directories"
+		printf "%d %s will be excluded from search" $nb_dir $directory
+		[ $nb_dir -gt 0 ] && printf " (${MAGENTA}%s${NC})\n" "$dir_excluded" || printf "\n"
+		[ $nb_dir -gt 1 ] && local dir_excluded=`echo $dir_excluded | sed -e 's/ *$//g' -e 's/ / --exclude-dir=/g' | tr -d '\n'`
+	else
+		dir_excluded=""
+	fi
 	local contributors=`grep -E -r -h "By:" --exclude-dir=$dir_excluded --include "*.c" . | tr -d ' ' | cut -d : -f 2 | cut -d '<' -f 1 | sort | uniq | tr '\n' ' ' | sed -e 's/ *$//g'`
 	for name in $contributors
 	do
@@ -338,6 +342,7 @@ MAKEFILES=false
 CONTRIB=false
 OPERATORS=false
 GIT=false
+CONTRIB_DIR_EXCLUDE=false
 REPO=""
 
 parse_parameters $PARAMS_LIST
