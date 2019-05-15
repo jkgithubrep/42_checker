@@ -11,15 +11,16 @@ git clone https://github.com/jkgithubrep/42_checker.git
 ## Usage
 
 ```
-Usage: sh 42_checker [options] [git_repo_url/path_to_project]
+Usage: sh 42_checker [options] [path_to_repo | git_repo_url]
 Options:
  -e, --all               Check everything.
  -r, --clone             Clone repository given as parameters before checking everything.
  -h, --help              Print this message and exit.
  -a, --author            Check for author file.
  -n, --norminette        Check norminette.
+ -o, --operators         Check end-of-line operators.
  -d, --headers           Check matching headers with file name.
- -m, --makefiles         Check makefiles (relink, wildcards).
+ -m, --makefiles         Check makefiles (mandatory rules, relink, wildcards).
  -c, --contrib           Check project contributors.
  -g, --git-logs          Check git logs.
 
